@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charles P. Mineh | Quiz Master PWA</title>
+    
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="data:application/manifest+json,{'name':'OCM Quiz Dashboard','short_name':'OCM Quiz','start_url':'.','display':'standalone','background_color':'#0f172a','theme_color':'#0f172a','icons':[{'src':'https://cdn-icons-png.flaticon.com/512/3407/3407024.png','sizes':'512x512','type':'image/png'}]}">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Montserrat:wght@400;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root { --gold: #FFD700; --blue: #00E5FF; --red: #FF3B3B; }
+        
+        body { 
+            background: #0f172a; 
+            color: #fff; 
+            font-family: 'Montserrat', sans-serif; 
+            min-height: 100vh; 
+            transition: background 0.5s ease;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        
+        .theme-library { background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1500&q=80'); }
+        .theme-space { background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1500&q=80'); }
+        .theme-dark { background: #0f172a; }
+
+        .header-main { background: rgba(0,0,0,0.8); border-bottom: 3px solid var(--gold); padding: 15px; position: relative; }
+        .glass-panel { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); border-radius: 25px; padding: 25px; border: 1px solid rgba(255,255,255,0.1); height: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        .score-box { font-family: 'Orbitron', sans-serif; font-size: 5.5rem; color: white; margin: 15px 0; background: #000; border-radius: 15px; border: 3px solid #333; box-shadow: inset 0 0 15px rgba(255,255,255,0.1); }
+        
+        .timer-ring { width: 140px; height: 140px; border: 6px solid #333; border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-family: 'Orbitron', sans-serif; font-size: 3.5rem; background: #000; }
+        .timer-active { border-color: var(--gold); box-shadow: 0 0 25px var(--gold); color: var(--gold); }
+        .timer-warning { color: var(--red); border-color: var(--red); box-shadow: 0 0 25px var(--red); }
+
+        .btn-score { width: 70px; height: 65px; border-radius: 15px; border: none; font-weight: 800; background: #28a745; color: white; box-shadow: 0 5px 0 #1a592e; margin: 4px; transition: 0.1s; }
+        .btn-score:active { transform: translateY(4px); box-shadow: none; }
+        
+        .btn-timer-reset { background: var(--red); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-weight: bold; box-shadow: 0 4px 0 #900; }
+
+        .tile { width: 42px; height: 42px; display: inline-block; margin: 4px; line-height: 42px; border-radius: 8px; background: rgba(255,255,255,0.1); cursor: pointer; text-align: center; border: 1px solid rgba(255,255,255,0.2); font-weight: bold; }
+        .tile.used { background: var(--red); opacity: 0.3; text-decoration: line-through; border-color: transparent; }
+
+        .full-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.96); display: none; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; transition: 0.5s; }
+        
+        /* Flashing Animation for Champion */
+        @keyframes winnerFlash {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .champion-text { font-family: 'Orbitron'; letter-spacing: 8px; animation: winnerFlash 2s infinite ease-in-out; }
+
+        .settings-btn { position: absolute; right: 20px; top: 20px; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; opacity: 0.7; }
+    </style>
+</head>
+<body class="theme-library" id="mainBody">
+
+<div id="victoryOverlay" class="full-overlay">
+    <div style="font-size: 7rem;" id="winnerIcon">🏆</div>
+    <h1 id="championLabel" class="champion-text">CHAMPIONS</h1>
+    <div id="winnerName" style="font-size: 5rem; font-weight: 800;">TEAM A</div>
+    <div id="winnerStats" class="text-info fs-2 mb-5">Final Score: 0 | Margin: 0</div>
+    <div class="d-flex flex-column gap-3">
+        <button class="btn btn-primary btn-lg px-5 py-3 fw-bold" onclick="downloadPDF()">DOWNLOAD PDF RESULT</button>
+        <div class="d-flex gap-3">
+            <button class="btn btn-outline-info btn-lg px-4" onclick="closeVictory()">BACK TO BOARD</button>
+            <button class="btn btn-outline-danger btn-lg px-4" onclick="if(confirm('Start new game?')) location.reload()">NEW COMPETITION</button>
+        </div>
+    </div>
+</div>
+
+<header class="header-main text-center">
+    <button class="settings-btn" onclick="toggleSettings()" title="Change Theme">⚙️</button>
+    <h1 id="compTitle" contenteditable="true" oninput="save()" class="display-4 fw-bold">Charles P. Mineh Quiz</h1>
+    <p class="mb-0 text-info">Official Competition Board | <span style="color:var(--gold)">0778869164</span></p>
+</header>
+
+<div class="container-fluid p-4">
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="glass-panel text-center" style="border-left: 10px solid var(--gold);">
+                <h2 id="nameA" contenteditable="true" oninput="save()" style="color:var(--gold); font-weight: 800;">TEAM A</h2>
+                <div id="scoreA" class="score-box">0</div>
+                <div class="d-flex flex-wrap justify-content-center">
+                    <button class="btn-score" onclick="add('A', 10)">+10</button>
+                    <button class="btn-score" onclick="add('A', 15)">+15</button>
+                    <button class="btn-score" onclick="add('A', 5)">+5</button>
+                    <button class="btn-score" onclick="add('A', 20)">+20</button>
+                    <button class="btn-score" style="background:var(--red); box-shadow: 0 5px 0 #900;" onclick="add('A', -5)">-5</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 text-center">
+            <div id="timer" class="timer-ring">0</div>
+            <div class="d-flex justify-content-center align-items-center gap-2 mt-4">
+                <button class="btn btn-info btn-sm fw-bold px-3" onclick="startClock(10)">General (10s)</button>
+                <button class="btn btn-warning btn-sm fw-bold px-3" onclick="startClock(15)">Math (15s)</button>
+                <button class="btn-timer-reset" onclick="resetClock()">✕</button>
+            </div>
+            
+            <div class="bg-black p-3 rounded border border-success mt-4 mb-4">
+                <small class="text-success fw-bold">LEADING MARGIN</small>
+                <h2 id="marginDisplay" class="mb-0" style="font-family: 'Orbitron'; color: #00FF41;">0</h2>
+            </div>
+
+            <div class="d-grid gap-2 col-10 mx-auto">
+                <button class="btn btn-primary btn-lg fw-bold py-3 shadow" onclick="finish()">FINISH GAME</button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-dark w-50" onclick="undo()">Undo</button>
+                    <button class="btn btn-danger w-50" onclick="reset()">Reset All</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="glass-panel text-center" style="border-right: 10px solid var(--blue);">
+                <h2 id="nameB" contenteditable="true" oninput="save()" style="color:var(--blue); font-weight: 800;">TEAM B</h2>
+                <div id="scoreB" class="score-box">0</div>
+                <div class="d-flex flex-wrap justify-content-center">
+                    <button class="btn-score" onclick="add('B', 10)">+10</button>
+                    <button class="btn-score" onclick="add('B', 15)">+15</button>
+                    <button class="btn-score" onclick="add('B', 5)">+5</button>
+                    <button class="btn-score" onclick="add('B', 20)">+20</button>
+                    <button class="btn-score" style="background:var(--red); box-shadow: 0 5px 0 #900;" onclick="add('B', -5)">-5</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5 g-3">
+        <div class="col-md-3"><div class="glass-panel text-center"><h6>English</h6><div id="cat-eng"></div></div></div>
+        <div class="col-md-3"><div class="glass-panel text-center" style="border: 2px solid var(--gold);"><h6>Mathematics (15s)</h6><div id="cat-math"></div></div></div>
+        <div class="col-md-3"><div class="glass-panel text-center"><h6>Social Studies</h6><div id="cat-soc"></div></div></div>
+        <div class="col-md-3"><div class="glass-panel text-center"><h6>Science</h6><div id="cat-sci"></div></div></div>
+    </div>
+</div>
+
+<div id="pdfContent" style="display:none; padding: 50px; color: black; background: white; font-family: Arial;">
+    <h1 style="text-align: center; border-bottom: 3px solid #000;">OFFICIAL QUIZ RESULT</h1>
+    <h2 id="pdfTitle" style="text-align: center; margin: 20px 0;"></h2>
+    <div style="margin: 50px 0; font-size: 1.4rem;">
+        <p><strong>WINNER:</strong> <span id="pdfWinTeam"></span></p>
+        <p><strong>SCORE:</strong> <span id="pdfWinScore"></span></p>
+        <p><strong>MARGIN:</strong> <span id="pdfMargin"></span></p>
+        <p><strong>DATE:</strong> <span id="pdfDate"></span></p>
+    </div>
+    <div style="margin-top: 100px;">
+        <div style="float: left; width: 250px; border-top: 1px solid #000; text-align: center;">
+            <p><strong>Diamond Pascal Young</strong><br>Coordinator</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let scores = { A: 0, B: 0 };
+    let history = [];
+    let clock;
+    let themes = ['theme-library', 'theme-space', 'theme-dark'];
+    let currentTheme = 0;
+
+    const tickSound = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+    const endSound = new Audio('https://actions.google.com/sounds/v1/alarms/digital_alarm_clock.ogg');
+
+    window.onload = () => {
+        ['eng', 'math', 'soc', 'sci'].forEach(c => {
+            const box = document.getElementById(`cat-${c}`);
+            for(let i=1; i<=10; i++) {
+                const s = document.createElement('span');
+                s.className = 'tile'; s.innerText = i;
+                s.onclick = function() { this.classList.toggle('used'); save(); };
+                box.appendChild(s);
+            }
+        });
+        if(localStorage.getItem('mineh_v5')) {
+            const d = JSON.parse(localStorage.getItem('mineh_v5'));
+            scores = d.scores;
+            document.getElementById('compTitle').innerText = d.title;
+            document.getElementById('nameA').innerText = d.nA;
+            document.getElementById('nameB').innerText = d.nB;
+            updateUI();
+        }
+    };
+
+    function startClock(sec) {
+        clearInterval(clock);
+        let t = sec;
+        const disp = document.getElementById('timer');
+        disp.classList.remove('timer-warning');
+        disp.classList.add('timer-active');
+        
+        clock = setInterval(() => {
+            t--; disp.innerText = t;
+            if(t <= 3 && t > 0) {
+                disp.classList.add('timer-warning');
+                tickSound.play().catch(e => {}); 
+            }
+            if(t <= 0) {
+                clearInterval(clock);
+                disp.classList.remove('timer-active', 'timer-warning');
+                endSound.play().catch(e => {});
+            }
+        }, 1000);
+    }
+
+    function resetClock() { clearInterval(clock); const disp = document.getElementById('timer'); disp.innerText = "0"; disp.classList.remove('timer-active', 'timer-warning'); }
+
+    function add(team, val) { history.push({...scores}); scores[team] += val; updateUI(); save(); }
+
+    function updateUI() {
+        document.getElementById('scoreA').innerText = scores.A;
+        document.getElementById('scoreB').innerText = scores.B;
+        document.getElementById('marginDisplay').innerText = Math.abs(scores.A - scores.B);
+    }
+
+    function toggleSettings() {
+        currentTheme = (currentTheme + 1) % themes.length;
+        document.getElementById('mainBody').className = themes[currentTheme];
+    }
+
+    function save() {
+        localStorage.setItem('mineh_v5', JSON.stringify({
+            scores: scores,
+            title: document.getElementById('compTitle').innerText,
+            nA: document.getElementById('nameA').innerText,
+            nB: document.getElementById('nameB').innerText
+        }));
+    }
+
+    function finish() {
+        const teamAName = document.getElementById('nameA').innerText;
+        const teamBName = document.getElementById('nameB').innerText;
+        const winnerLabel = document.getElementById('championLabel');
+        const overlay = document.getElementById('victoryOverlay');
+        
+        let winner;
+        if (scores.A > scores.B) {
+            winner = teamAName;
+            winnerLabel.style.color = 'var(--gold)';
+            overlay.style.boxShadow = 'inset 0 0 100px var(--gold)';
+        } else if (scores.B > scores.A) {
+            winner = teamBName;
+            winnerLabel.style.color = 'var(--blue)';
+            overlay.style.boxShadow = 'inset 0 0 100px var(--blue)';
+        } else {
+            winner = "Tie Game";
+            winnerLabel.style.color = 'white';
+            overlay.style.boxShadow = 'none';
+        }
+
+        document.getElementById('winnerName').innerText = winner;
+        document.getElementById('winnerStats').innerText = `Final Score: ${Math.max(scores.A, scores.B)} | Margin: ${Math.abs(scores.A - scores.B)}`;
+        document.getElementById('pdfTitle').innerText = document.getElementById('compTitle').innerText;
+        document.getElementById('pdfWinTeam').innerText = winner;
+        document.getElementById('pdfWinScore').innerText = Math.max(scores.A, scores.B);
+        document.getElementById('pdfMargin').innerText = Math.abs(scores.A - scores.B);
+        document.getElementById('pdfDate').innerText = new Date().toLocaleString();
+        overlay.style.display = 'flex';
+    }
+
+    function closeVictory() { document.getElementById('victoryOverlay').style.display = 'none'; }
+
+    function downloadPDF() {
+        const el = document.getElementById('pdfContent');
+        el.style.display = 'block';
+        html2pdf().from(el).set({ margin: 0.5, filename: 'CharlesMineh_Result.pdf' }).save().then(() => el.style.display = 'none');
+    }
+
+    function undo() { if(history.length > 0) { scores = history.pop(); updateUI(); save(); } }
+    function reset() { if(confirm("Reset everything?")) { scores={A:0,B:0}; updateUI(); save(); } }
+</script>
+</body>
+</html>
